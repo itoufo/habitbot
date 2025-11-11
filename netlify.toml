@@ -1,0 +1,42 @@
+# Netlify Configuration for HabitLine Admin Dashboard (Vite + React)
+
+[build]
+  # Base directory for the build
+  base = "admin"
+
+  # Build command
+  command = "npm run build"
+
+  # Output directory (relative to base)
+  publish = "dist"
+
+[build.environment]
+  # Node version
+  NODE_VERSION = "18"
+
+# Redirect rules for SPA
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Headers for security
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    X-XSS-Protection = "1; mode=block"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+# Environment variables (set these in Netlify UI)
+# NEXT_PUBLIC_SUPABASE_URL
+# NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+# Dev settings
+[dev]
+  command = "npm run dev"
+  port = 8080
+  targetPort = 8080
+  publish = "admin/.next"
+  autoLaunch = false

@@ -1,0 +1,23 @@
+{
+  "name": "habitline",
+  "version": "1.0.0",
+  "description": "LINE習慣化SaaS - 続ける力を、設計で支える",
+  "private": true,
+  "scripts": {
+    "install:admin": "cd admin && npm install",
+    "dev": "cd admin && npm run dev",
+    "build": "cd admin && npm run build",
+    "start": "cd admin && npm run start",
+    "lint": "cd admin && npm run lint",
+    "deploy:supabase": "./scripts/deploy.sh",
+    "setup-secrets": "./scripts/setup-secrets.sh"
+  },
+  "keywords": [
+    "habit",
+    "line",
+    "saas",
+    "supabase"
+  ],
+  "author": "",
+  "license": "UNLICENSED"
+}
