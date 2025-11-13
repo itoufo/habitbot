@@ -11,7 +11,15 @@
       "Bash(npm run dev:*)",
       "Bash(mv:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(git remote add:*)",
+      "Bash(git branch:*)",
+      "Bash(git push:*)",
+      "Bash(brew install:*)",
+      "Bash(supabase --version:*)",
+      "Bash(supabase status:*)",
+      "Bash(supabase start:*)",
+      "Bash(supabase stop:*)"
     ],
     "deny": [],
     "ask": []

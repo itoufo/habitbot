@@ -33,7 +33,7 @@ api_url = "http://localhost"
 enabled = true
 port = 54325
 smtp_port = 54326
-pop3_port = 54327
+pop3_port = 54328
 
 [storage]
 enabled = true
