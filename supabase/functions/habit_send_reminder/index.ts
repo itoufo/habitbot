@@ -7,9 +7,9 @@ import type { HabitHabit, HabitUser, APIResponse } from '../_shared/types.ts';
 
 serve(async (req: Request) => {
   try {
-    const accessToken = Deno.env.get('LINE_CHANNEL_ACCESS_TOKEN');
+    const accessToken = Deno.env.get('HABIT_LINE_CHANNEL_ACCESS_TOKEN');
     if (!accessToken) {
-      throw new Error('Missing LINE_CHANNEL_ACCESS_TOKEN');
+      throw new Error('Missing HABIT_LINE_CHANNEL_ACCESS_TOKEN');
     }
 
     const supabase = getSupabaseClient();

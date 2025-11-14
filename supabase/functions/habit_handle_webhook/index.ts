@@ -29,8 +29,8 @@ serve(async (req: Request) => {
 
   try {
     // Get environment variables
-    const channelSecret = Deno.env.get('LINE_CHANNEL_SECRET');
-    const accessToken = Deno.env.get('LINE_CHANNEL_ACCESS_TOKEN');
+    const channelSecret = Deno.env.get('HABIT_LINE_CHANNEL_SECRET');
+    const accessToken = Deno.env.get('HABIT_LINE_CHANNEL_ACCESS_TOKEN');
 
     if (!channelSecret || !accessToken) {
       throw new Error('Missing LINE credentials');

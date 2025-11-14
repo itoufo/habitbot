@@ -149,8 +149,8 @@ export interface APIResponse<T = unknown> {
 export interface EnvVars {
   HABIT_SUPABASE_URL: string;
   HABIT_SUPABASE_SERVICE_ROLE_KEY: string;
-  LINE_CHANNEL_SECRET: string;
-  LINE_CHANNEL_ACCESS_TOKEN: string;
+  HABIT_LINE_CHANNEL_SECRET: string;
+  HABIT_LINE_CHANNEL_ACCESS_TOKEN: string;
   HABIT_OPENAI_API_KEY: string;
   HABIT_STRIPE_WEBHOOK_SECRET?: string;
 }
