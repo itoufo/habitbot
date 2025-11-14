@@ -8,7 +8,7 @@ import type { HabitUser, AIPromptContext, APIResponse } from '../_shared/types.t
 serve(async (req: Request) => {
   try {
     const openaiApiKey = Deno.env.get('HABIT_OPENAI_API_KEY');
-    const lineAccessToken = Deno.env.get('HABIT_LINE_ACCESS_TOKEN');
+    const lineAccessToken = Deno.env.get('LINE_CHANNEL_ACCESS_TOKEN');
 
     if (!openaiApiKey || !lineAccessToken) {
       throw new Error('Missing required environment variables');

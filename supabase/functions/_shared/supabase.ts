@@ -16,11 +16,15 @@ export function createSupabaseClient(
 }
 
 export function getSupabaseClient(): SupabaseClient {
-  const supabaseUrl = Deno.env.get('HABIT_SUPABASE_URL');
-  const supabaseKey = Deno.env.get('HABIT_SUPABASE_SERVICE_ROLE_KEY');
+  // Supabase automatically provides SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY
+  const supabaseUrl = Deno.env.get('SUPABASE_URL') || 'http://127.0.0.1:54321';
+  const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || Deno.env.get('SUPABASE_ANON_KEY') || '';
+
+  console.log('[DEBUG] Supabase URL:', supabaseUrl);
+  console.log('[DEBUG] Supabase Key exists:', !!supabaseKey);
 
   if (!supabaseUrl || !supabaseKey) {
-    throw new Error('Missing HABIT_SUPABASE_URL or HABIT_SUPABASE_SERVICE_ROLE_KEY');
+    throw new Error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
   }
 
   return createSupabaseClient(supabaseUrl, supabaseKey);

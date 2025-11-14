@@ -15,6 +15,7 @@ export default defineConfig({
     strictPort: false, // ポートが使用中なら自動で次のポートを試す
     host: true,
     open: false,
+    allowedHosts: ['.ngrok-free.app', '.ngrok.io'],
   },
   preview: {
     port: 8080,

@@ -19,7 +19,15 @@
       "Bash(supabase --version:*)",
       "Bash(supabase status:*)",
       "Bash(supabase start:*)",
-      "Bash(supabase stop:*)"
+      "Bash(supabase stop:*)",
+      "Bash(psql:*)",
+      "Bash(date:*)",
+      "Bash(TZ='Asia/Tokyo' date:*)",
+      "Bash(npm install:*)",
+      "Bash(ngrok http:*)",
+      "Bash(pkill:*)",
+      "Bash(supabase functions serve:*)",
+      "Bash(supabase db push:*)"
     ],
     "deny": [],
     "ask": []

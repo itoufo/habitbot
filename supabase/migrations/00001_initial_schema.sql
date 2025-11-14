@@ -2,13 +2,13 @@
 -- All tables, functions, and objects prefixed with 'habit_'
 
 -- Enable required extensions
-create extension if not exists "uuid-ossp";
+create extension if not exists "pgcrypto";
 
 -- ==========================================
 -- Users Table
 -- ==========================================
 create table if not exists habit_users (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   line_id text unique not null,
   name text,
   plan text check (plan in ('free','standard','premium','team')) default 'free',
@@ -25,7 +25,7 @@ comment on column habit_users.character_type is 'AI personality type for message
 -- Habits Table
 -- ==========================================
 create table if not exists habit_habits (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   user_id uuid not null references habit_users(id) on delete cascade,
   title text not null,
   reminder_time time,
@@ -44,7 +44,7 @@ comment on column habit_habits.last_completed_date is 'Most recent completion da
 -- Logs Table
 -- ==========================================
 create table if not exists habit_logs (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   habit_id uuid not null references habit_habits(id) on delete cascade,
   date date not null,
   status boolean default false,
@@ -61,7 +61,7 @@ comment on column habit_logs.status is 'true = completed, false = skipped/pendin
 -- AI Feedback Table
 -- ==========================================
 create table if not exists habit_ai_feedback (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   user_id uuid not null references habit_users(id) on delete cascade,
   message text not null,
   sentiment float check (sentiment between -1 and 1),
@@ -76,7 +76,7 @@ comment on column habit_ai_feedback.sentiment is 'Sentiment score: -1 (negative)
 -- Schedules Table
 -- ==========================================
 create table if not exists habit_schedules (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   habit_id uuid not null references habit_habits(id) on delete cascade,
   notify_time time not null,
   days text[] check (array_length(days, 1) > 0),
@@ -92,7 +92,7 @@ comment on column habit_schedules.days is 'Array of day abbreviations: Mon, Tue,
 -- Teams Table
 -- ==========================================
 create table if not exists habit_teams (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   name text not null,
   owner_user_id uuid references habit_users(id) on delete set null,
   created_at timestamp with time zone default now(),
@@ -105,7 +105,7 @@ comment on table habit_teams is 'Team/organization accounts for B2B';
 -- Team Members Table
 -- ==========================================
 create table if not exists habit_team_members (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   team_id uuid not null references habit_teams(id) on delete cascade,
   user_id uuid not null references habit_users(id) on delete cascade,
   role text check (role in ('owner','admin','member')) default 'member',
@@ -120,7 +120,7 @@ comment on table habit_team_members is 'Team membership and roles';
 -- Retry Queue Table (for failed operations)
 -- ==========================================
 create table if not exists habit_retry_queue (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   operation_type text not null,
   payload jsonb not null,
   retry_count int default 0,

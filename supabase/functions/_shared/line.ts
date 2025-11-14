@@ -1,6 +1,5 @@
 // LINE Messaging API utilities
 
-import * as crypto from 'https://deno.land/std@0.210.0/crypto/mod.ts';
 import { encodeHex } from 'https://deno.land/std@0.210.0/encoding/hex.ts';
 import type { LINEMessage } from './types.ts';
 
@@ -15,7 +14,7 @@ export async function verifyLINESignature(
   channelSecret: string
 ): Promise<boolean> {
   const encoder = new TextEncoder();
-  const key = await crypto.subtle.importKey(
+  const key = await globalThis.crypto.subtle.importKey(
     'raw',
     encoder.encode(channelSecret),
     { name: 'HMAC', hash: 'SHA-256' },
@@ -23,7 +22,7 @@ export async function verifyLINESignature(
     ['sign']
   );
 
-  const signatureBuffer = await crypto.subtle.sign(
+  const signatureBuffer = await globalThis.crypto.subtle.sign(
     'HMAC',
     key,
     encoder.encode(body)
@@ -180,11 +179,62 @@ export function createCelebrationMessage(
   return {
     type: 'text',
     text: messages[characterType],
+    quickReply: {
+      items: createQuickReplyItems(),
+    },
   };
 }
 
 /**
- * Create help message
+ * Create common quick reply items for all messages
+ */
+export function createQuickReplyItems() {
+  return [
+    {
+      type: 'action' as const,
+      action: {
+        type: 'message' as const,
+        label: 'やった',
+        text: 'やった',
+      },
+    },
+    {
+      type: 'action' as const,
+      action: {
+        type: 'message' as const,
+        label: '進捗',
+        text: '進捗',
+      },
+    },
+    {
+      type: 'action' as const,
+      action: {
+        type: 'message' as const,
+        label: '一覧',
+        text: '一覧',
+      },
+    },
+    {
+      type: 'action' as const,
+      action: {
+        type: 'message' as const,
+        label: '習慣追加',
+        text: '習慣 追加 ',
+      },
+    },
+    {
+      type: 'action' as const,
+      action: {
+        type: 'message' as const,
+        label: 'ヘルプ',
+        text: 'help',
+      },
+    },
+  ];
+}
+
+/**
+ * Create help message with quick reply buttons
  */
 export function createHelpMessage(): LINEMessage {
   return {
@@ -192,11 +242,9 @@ export function createHelpMessage(): LINEMessage {
     text: `📖 HabitLine ヘルプ
 
 【コマンド】
-• 開始 / help - このメッセージを表示
 • 習慣 追加 <タイトル> - 新しい習慣を登録
 • リマインド <HH:MM> - 通知時刻を設定
 • やった - 今日の習慣を達成
-• あとで - 後で実行
 • 進捗 - 連続日数と達成率を表示
 • 一覧 - 登録中の習慣を表示
 
@@ -207,5 +255,8 @@ export function createHelpMessage(): LINEMessage {
 4. 連続日数を伸ばして習慣を定着させよう！
 
 続ける力を、設計で支える。`,
+    quickReply: {
+      items: createQuickReplyItems(),
+    },
   };
 }

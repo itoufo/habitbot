@@ -8,6 +8,7 @@ import {
   getUserProfile,
   createCelebrationMessage,
   createHelpMessage,
+  createQuickReplyItems,
 } from '../_shared/line.ts';
 import type {
   LINEWebhookBody,
@@ -28,30 +29,37 @@ serve(async (req: Request) => {
 
   try {
     // Get environment variables
-    const channelSecret = Deno.env.get('HABIT_LINE_CHANNEL_SECRET');
-    const accessToken = Deno.env.get('HABIT_LINE_ACCESS_TOKEN');
+    const channelSecret = Deno.env.get('LINE_CHANNEL_SECRET');
+    const accessToken = Deno.env.get('LINE_CHANNEL_ACCESS_TOKEN');
 
     if (!channelSecret || !accessToken) {
       throw new Error('Missing LINE credentials');
     }
 
-    // Verify signature
+    // Verify signature (skip in development if SKIP_SIGNATURE_VERIFICATION is set)
+    const skipVerification = Deno.env.get('SKIP_SIGNATURE_VERIFICATION') === 'true';
     const signature = req.headers.get('x-line-signature');
     const body = await req.text();
 
-    if (!signature) {
-      return new Response(JSON.stringify({ error: 'Missing signature' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
+    console.log('[DEBUG] Skip verification:', skipVerification);
+    console.log('[DEBUG] Signature:', signature ? 'present' : 'missing');
 
-    const isValid = await verifyLINESignature(body, signature, channelSecret);
-    if (!isValid) {
-      return new Response(JSON.stringify({ error: 'Invalid signature' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' },
-      });
+    if (!skipVerification) {
+      if (!signature) {
+        return new Response(JSON.stringify({ error: 'Missing signature' }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+
+      const isValid = await verifyLINESignature(body, signature, channelSecret);
+      if (!isValid) {
+        console.error('[ERROR] Invalid LINE signature');
+        return new Response(JSON.stringify({ error: 'Invalid signature' }), {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
     }
 
     // Parse webhook body
@@ -156,6 +164,8 @@ async function handleTextMessage(
     await replyMessage(event.replyToken, [createHelpMessage()], accessToken);
   } else if (text.startsWith('習慣 追加') || text.startsWith('習慣追加')) {
     await handleAddHabit(text, user, event.replyToken, supabase, accessToken);
+  } else if (text.startsWith('リマインド') || text.match(/^\d{1,2}:\d{2}$/)) {
+    await handleReminder(text, user, event.replyToken, supabase, accessToken);
   } else if (lower === 'やった' || lower === 'done') {
     await handleComplete(user, event.replyToken, supabase, accessToken);
   } else if (lower === '進捗' || lower === 'progress') {
@@ -163,13 +173,49 @@ async function handleTextMessage(
   } else if (lower === '一覧' || lower === 'list') {
     await handleList(user, event.replyToken, supabase, accessToken);
   } else {
-    // Default response
+    // Default response with quick reply
     await replyMessage(
       event.replyToken,
       [
         {
           type: 'text',
-          text: 'コマンドが認識できませんでした。\n「help」と入力してヘルプを表示してください。',
+          text: 'コマンドが認識できませんでした。\n下のボタンからコマンドを選択してください。',
+          quickReply: {
+            items: [
+              {
+                type: 'action',
+                action: {
+                  type: 'message',
+                  label: 'ヘルプ',
+                  text: 'help',
+                },
+              },
+              {
+                type: 'action',
+                action: {
+                  type: 'message',
+                  label: 'やった',
+                  text: 'やった',
+                },
+              },
+              {
+                type: 'action',
+                action: {
+                  type: 'message',
+                  label: '進捗',
+                  text: '進捗',
+                },
+              },
+              {
+                type: 'action',
+                action: {
+                  type: 'message',
+                  label: '一覧',
+                  text: '一覧',
+                },
+              },
+            ],
+          },
         },
       ],
       accessToken
@@ -193,6 +239,9 @@ async function handleAddHabit(
         {
           type: 'text',
           text: '使い方: 習慣 追加 <タイトル>\n例: 習慣 追加 読書10分',
+          quickReply: {
+            items: createQuickReplyItems(),
+          },
         },
       ],
       accessToken
@@ -216,7 +265,15 @@ async function handleAddHabit(
   if (error) {
     await replyMessage(
       replyToken,
-      [{ type: 'text', text: '習慣の登録に失敗しました。もう一度お試しください。' }],
+      [
+      {
+        type: 'text',
+        text: '習慣の登録に失敗しました。もう一度お試しください。',
+        quickReply: {
+          items: createQuickReplyItems(),
+        },
+      },
+    ],
       accessToken
     );
     return;
@@ -228,6 +285,9 @@ async function handleAddHabit(
       {
         type: 'text',
         text: `✅ 習慣「${title}」を登録しました！\n\nリマインド時刻を設定するには:\nリマインド 07:00\nのように入力してください。`,
+        quickReply: {
+          items: createQuickReplyItems(),
+        },
       },
     ],
     accessToken
@@ -250,7 +310,15 @@ async function handleComplete(
   if (error || !habits || habits.length === 0) {
     await replyMessage(
       replyToken,
-      [{ type: 'text', text: 'まだ習慣が登録されていません。\n「習慣 追加 <タイトル>」で登録してください。' }],
+      [
+      {
+        type: 'text',
+        text: 'まだ習慣が登録されていません。\n「習慣 追加 <タイトル>」で登録してください。',
+        quickReply: {
+          items: createQuickReplyItems(),
+        },
+      },
+    ],
       accessToken
     );
     return;
@@ -275,7 +343,15 @@ async function handleComplete(
   if (logError) {
     await replyMessage(
       replyToken,
-      [{ type: 'text', text: '記録に失敗しました。もう一度お試しください。' }],
+      [
+      {
+        type: 'text',
+        text: '記録に失敗しました。もう一度お試しください。',
+        quickReply: {
+          items: createQuickReplyItems(),
+        },
+      },
+    ],
       accessToken
     );
     return;
@@ -312,7 +388,15 @@ async function handleProgress(
   if (!habits || habits.length === 0) {
     await replyMessage(
       replyToken,
-      [{ type: 'text', text: 'まだ習慣が登録されていません。' }],
+      [
+      {
+        type: 'text',
+        text: 'まだ習慣が登録されていません。',
+        quickReply: {
+          items: createQuickReplyItems(),
+        },
+      },
+    ],
       accessToken
     );
     return;
@@ -323,7 +407,19 @@ async function handleProgress(
     message += `• ${habit.title}: ${habit.streak_count}日連続\n`;
   }
 
-  await replyMessage(replyToken, [{ type: 'text', text: message }], accessToken);
+  await replyMessage(
+    replyToken,
+    [
+      {
+        type: 'text',
+        text: message,
+        quickReply: {
+          items: createQuickReplyItems(),
+        },
+      },
+    ],
+    accessToken
+  );
 }
 
 async function handleList(
@@ -341,7 +437,15 @@ async function handleList(
   if (!habits || habits.length === 0) {
     await replyMessage(
       replyToken,
-      [{ type: 'text', text: 'まだ習慣が登録されていません。' }],
+      [
+      {
+        type: 'text',
+        text: 'まだ習慣が登録されていません。',
+        quickReply: {
+          items: createQuickReplyItems(),
+        },
+      },
+    ],
       accessToken
     );
     return;
@@ -353,7 +457,137 @@ async function handleList(
     message += `${status} ${habit.title}\n`;
   }
 
-  await replyMessage(replyToken, [{ type: 'text', text: message }], accessToken);
+  await replyMessage(
+    replyToken,
+    [
+      {
+        type: 'text',
+        text: message,
+        quickReply: {
+          items: createQuickReplyItems(),
+        },
+      },
+    ],
+    accessToken
+  );
+}
+
+async function handleReminder(
+  text: string,
+  user: HabitUser,
+  replyToken: string,
+  supabase: any,
+  accessToken: string
+) {
+  // Extract time from text (supports "リマインド 07:00" or "07:00")
+  let timeMatch = text.match(/(\d{1,2}):(\d{2})/);
+
+  if (!timeMatch) {
+    await replyMessage(
+      replyToken,
+      [
+        {
+          type: 'text',
+          text: '使い方: リマインド <HH:MM>\n例: リマインド 07:00\nまたは直接時刻を入力: 07:00',
+          quickReply: {
+            items: createQuickReplyItems(),
+          },
+        },
+      ],
+      accessToken
+    );
+    return;
+  }
+
+  const hours = parseInt(timeMatch[1], 10);
+  const minutes = parseInt(timeMatch[2], 10);
+
+  if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+    await replyMessage(
+      replyToken,
+      [
+      {
+        type: 'text',
+        text: '無効な時刻です。00:00〜23:59の範囲で指定してください。',
+        quickReply: {
+          items: createQuickReplyItems(),
+        },
+      },
+    ],
+      accessToken
+    );
+    return;
+  }
+
+  // Convert JST to UTC (JST is UTC+9)
+  const jstHours = hours;
+  const jstMinutes = minutes;
+  const utcHours = (jstHours - 9 + 24) % 24;  // Handle negative hours
+
+  const reminderTime = `${utcHours.toString().padStart(2, '0')}:${jstMinutes.toString().padStart(2, '0')}:00`;
+
+  // Get user's active habits
+  const { data: habits } = await supabase
+    .from('habit_habits')
+    .select('id, title')
+    .eq('user_id', user.id)
+    .eq('is_active', true);
+
+  if (!habits || habits.length === 0) {
+    await replyMessage(
+      replyToken,
+      [
+        {
+          type: 'text',
+          text: 'まだ習慣が登録されていません。\n先に「習慣 追加 <タイトル>」で習慣を追加してください。',
+          quickReply: {
+            items: createQuickReplyItems(),
+          },
+        },
+      ],
+      accessToken
+    );
+    return;
+  }
+
+  // Update reminder time for all active habits
+  const { error } = await supabase
+    .from('habit_habits')
+    .update({ reminder_time: reminderTime })
+    .eq('user_id', user.id)
+    .eq('is_active', true);
+
+  if (error) {
+    console.error('Error updating reminder time:', error);
+    await replyMessage(
+      replyToken,
+      [
+      {
+        type: 'text',
+        text: 'リマインダーの設定に失敗しました。もう一度お試しください。',
+        quickReply: {
+          items: createQuickReplyItems(),
+        },
+      },
+    ],
+      accessToken
+    );
+    return;
+  }
+
+  await replyMessage(
+    replyToken,
+    [
+      {
+        type: 'text',
+        text: `⏰ リマインダーを ${hours}:${minutes.toString().padStart(2, '0')} に設定しました！\n\n${habits.length}個の習慣に適用されました。`,
+        quickReply: {
+          items: createQuickReplyItems(),
+        },
+      },
+    ],
+    accessToken
+  );
 }
 
 async function handlePostback(
@@ -398,7 +632,15 @@ async function handlePostback(
   } else if (action === 'later') {
     await replyMessage(
       event.replyToken,
-      [{ type: 'text', text: 'わかりました！また後でリマインドします。' }],
+      [
+      {
+        type: 'text',
+        text: 'わかりました！また後でリマインドします。',
+        quickReply: {
+          items: createQuickReplyItems(),
+        },
+      },
+    ],
       accessToken
     );
   }
@@ -418,6 +660,9 @@ async function handleFollow(
       {
         type: 'text',
         text: `ようこそHabitLineへ！✨\n\n続ける力を、設計で支える。\n毎日の小さな習慣を一緒に育てていきましょう。\n\n「help」と入力すると使い方が表示されます。`,
+        quickReply: {
+          items: createQuickReplyItems(),
+        },
       },
     ],
     accessToken
